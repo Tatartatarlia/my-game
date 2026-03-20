@@ -4,6 +4,7 @@ import '../styles/StartScreen.css';
 import ParticleEffect from './ParticleEffect';
 import GameRuleModal from '../components/GameRuleModal';
 import { useAudio } from '../context/AudioContext';
+import { useGameContext } from '../context/GameContext';
 
 export default function StartScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);//游戏说明弹窗
@@ -11,6 +12,7 @@ export default function StartScreen() {
   const hasAutoTriedPlayRef = useRef(false);
   const hasUserGestureTriggeredRef = useRef(false);
   const { defaultBgmUrl, defaultSeUrl, playBgm, playSe } = useAudio();
+  const { startGame, enterArchive } = useGameContext();
 
   useEffect(() => {
     if (hasAutoTriedPlayRef.current) return;
@@ -75,11 +77,20 @@ export default function StartScreen() {
           onClick={() => {
             if (defaultSeUrl) playSe(defaultSeUrl);
             playBgm(defaultBgmUrl);
+            startGame();
           }}
         >
           开始游戏
         </button>
-        <button className="btn btn-load">查看存档</button>
+        <button
+          className="btn btn-load"
+          onClick={() => {
+            if (defaultSeUrl) playSe(defaultSeUrl);
+            enterArchive();
+          }}
+        >
+          查看存档
+        </button>
         <button className="btn btn-info" onClick={() => setIsModalOpen(true)}>游戏说明</button>
       </div>
       <GameRuleModal 
