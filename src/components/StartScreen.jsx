@@ -1,8 +1,11 @@
 import { useRef } from 'react';
+import { useState } from 'react';
 import '../styles/StartScreen.css';
 import ParticleEffect from './ParticleEffect';
+import GameRuleModal from '../components/GameRuleModal';
 
 export default function StartScreen() {
+  const [isModalOpen, setIsModalOpen] = useState(false);//游戏说明弹窗
   const screenRef = useRef(null);
 
   return (
@@ -19,8 +22,12 @@ export default function StartScreen() {
       <div className="buttons-container">
         <button className="btn btn-start">开始游戏</button>
         <button className="btn btn-load">查看存档</button>
-        <button className="btn btn-info">游戏说明</button>
+        <button className="btn btn-info" onClick={() => setIsModalOpen(true)}>游戏说明</button>
       </div>
+      <GameRuleModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
     </div>
   );
 }
