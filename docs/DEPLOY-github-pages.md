@@ -12,6 +12,9 @@
 > 若打开是空白页：确认仓库名与 `BASE_PATH` 一致（工作流里已自动用仓库名）；本地可用  
 > `BASE_PATH=/你的仓库名/ npm run build` 再 `npx vite preview` 检查。
 
+> **Actions 报错 “Dependencies lock file is not found”**：  
+> 不要用 `cache: npm` 却没有 `package-lock.json`。当前工作流已改为 **pnpm** + `pnpm-lock.yaml`；若你只用 npm，可删掉 `cache` 行并保留 `npm install`。
+
 ## 本地模拟生产构建
 
 ```bash
