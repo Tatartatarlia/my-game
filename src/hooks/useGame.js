@@ -15,6 +15,8 @@ function clamp(n, min, max) {
 // - 暂不处理失败回滚/存档（后面再加）
 export default function useGame() {
   const [mode, setMode] = useState(INITIAL_MODE); // main | story | failed | cleared | archive
+  /** 仅当从「查看存档」回到主菜单时为 true，供 StartScreen 决定是否沿用正在播的开始界面 BGM（其它入口应重新随机） */
+  const [mainEntryFromArchive, setMainEntryFromArchive] = useState(false);
   const [nodeId, setNodeId] = useState(null);
   const [checkpoint, setCheckpoint] = useState(null);
   const [history, setHistory] = useState([]);
@@ -48,6 +50,7 @@ export default function useGame() {
   );
 
   const startGame = useCallback(() => {
+    setMainEntryFromArchive(false);
     const saved = loadGame();
     const ok = applySavedState(saved);
     if (ok) {
@@ -316,6 +319,7 @@ export default function useGame() {
   );
 
   const stopGameToMain = useCallback(() => {
+    setMainEntryFromArchive(false);
     setMode('main');
     setCheckpoint(null);
   }, []);
@@ -328,8 +332,16 @@ export default function useGame() {
   }, [applySavedState, loadGame]);
 
   const exitArchive = useCallback(() => {
+    setMainEntryFromArchive(true);
     setMode('main');
   }, []);
+
+  // 清除「从存档回主菜单」标记：用 setTimeout(0) 以便 React StrictMode 下连续两次挂载都能读到 true（见 StartScreen useLayoutEffect）
+  useEffect(() => {
+    if (mode !== 'main' || !mainEntryFromArchive) return undefined;
+    const id = window.setTimeout(() => setMainEntryFromArchive(false), 0);
+    return () => window.clearTimeout(id);
+  }, [mode, mainEntryFromArchive]);
 
   // 自动保存：剧情 / 失败 / 通关界面也写入（便于读档回到通关页）
   useEffect(() => {
@@ -346,6 +358,7 @@ export default function useGame() {
 
   const value = {
     mode,
+    mainEntryFromArchive,
     nodeId,
     currentNode,
     affection,

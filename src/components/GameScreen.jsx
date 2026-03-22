@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
+import { useAudio } from '../context/AudioContext';
 import { useGameContext } from '../context/GameContext';
 import ChoiceList from './ChoiceList';
 import DialogBox from './DialogBox';
@@ -35,8 +36,21 @@ function getSpeakerKey(speaker) {
 
 export default function GameScreen() {
   const { currentNode, affection, affectionMeta, advance, choose, stopGameToMain } = useGameContext();
+  const { playStoryBgmForNode, stopBgm } = useAudio();
 
   const node = currentNode;
+
+  useEffect(() => {
+    if (!node?.id) return;
+    playStoryBgmForNode(node.id);
+  }, [node?.id, playStoryBgmForNode]);
+
+  // 离开剧情回到主菜单/存档等时暂停，避免主界面仍播上一段剧情曲；回主界面后再点击可重新播「开始界面」BGM
+  useEffect(() => {
+    return () => {
+      stopBgm();
+    };
+  }, [stopBgm]);
   const effectiveSpeaker = node?.type === 'choice' ? null : node?.speaker;
 
   const affectionValue = affection.tartaglia ?? 0;

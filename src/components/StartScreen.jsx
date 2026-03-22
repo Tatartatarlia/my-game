@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useState } from 'react';
 import '../styles/StartScreen.css';
 import ParticleEffect from './ParticleEffect';
@@ -13,8 +13,29 @@ export default function StartScreen() {
   const screenRef = useRef(null);
   const hasAutoTriedPlayRef = useRef(false);
   const hasUserGestureTriggeredRef = useRef(false);
-  const { defaultBgmUrl, defaultSeUrl, playBgm, playSe } = useAudio();
-  const { startGame, enterArchive } = useGameContext();
+  /** 本次停留在主界面期间固定同一首开始界面 BGM，避免点「开始游戏」时又随机换歌 */
+  const startBgmUrlThisVisitRef = useRef(null);
+  const { pickStartScreenBgmUrl, defaultSeUrl, playBgm, playSe, getStartMenuBgmIfAlreadyPlaying } =
+    useAudio();
+  const { startGame, enterArchive, mainEntryFromArchive } = useGameContext();
+
+  const resolveStartBgmUrl = () => {
+    if (startBgmUrlThisVisitRef.current) {
+      return startBgmUrlThisVisitRef.current;
+    }
+    const url = pickStartScreenBgmUrl();
+    startBgmUrlThisVisitRef.current = url;
+    return url;
+  };
+
+  // 仅从「查看存档」回到主菜单时：沿用正在播的开始界面 BGM（进度不变）。其它情况勿根据全局 audio 锁定，否则会一直同一首（含 HMR/单例仍在播）
+  useLayoutEffect(() => {
+    if (!mainEntryFromArchive) return;
+    const playingUrl = getStartMenuBgmIfAlreadyPlaying();
+    if (!playingUrl) return;
+    startBgmUrlThisVisitRef.current = playingUrl;
+    hasUserGestureTriggeredRef.current = true;
+  }, [mainEntryFromArchive, getStartMenuBgmIfAlreadyPlaying]);
 
   useEffect(() => {
     if (hasAutoTriedPlayRef.current) return;
@@ -29,7 +50,7 @@ export default function StartScreen() {
       if (hasUserGestureTriggeredRef.current) return;
       hasUserGestureTriggeredRef.current = true;
       // 不 await，保证在用户手势回调同步触发 audio.play()
-      playBgm(defaultBgmUrl).then((ok) => {
+      playBgm(resolveStartBgmUrl()).then((ok) => {
         if (!ok) console.warn('[Audio] 用户交互播放BGM失败，可能仍被浏览器策略拦截');
       });
     };
@@ -42,7 +63,7 @@ export default function StartScreen() {
       window.removeEventListener('pointerdown', onFirstInteraction);
       window.removeEventListener('keydown', onFirstInteraction);
     };
-  }, [defaultBgmUrl, playBgm]);
+  }, [pickStartScreenBgmUrl, playBgm]);
 
   const onAnyPointerDown = () => {
     // 每次点击都给一个按钮音效（如果你确实放了 se 文件）
@@ -52,7 +73,7 @@ export default function StartScreen() {
     if (hasUserGestureTriggeredRef.current) return;
     hasUserGestureTriggeredRef.current = true;
 
-    playBgm(defaultBgmUrl).then((ok) => {
+    playBgm(resolveStartBgmUrl()).then((ok) => {
       if (!ok) console.warn('[Audio] root pointerdown 播放BGM失败，可能仍被拦截');
     });
   };
@@ -78,7 +99,7 @@ export default function StartScreen() {
           className="btn btn-start"
           onClick={() => {
             if (defaultSeUrl) playSe(defaultSeUrl);
-            playBgm(defaultBgmUrl);
+            // 剧情 BGM 由 GameScreen 根据 nodeId 切换；此处不再播开始界面音乐
             startGame();
           }}
         >
